@@ -119,8 +119,9 @@ Ready-made scripts in [examples/](examples/):
 | `examples/ping.sh [host]` | Ping time in milliseconds |
 | `examples/countdown.sh 90` | A countdown from that many seconds to `000` |
 
-They run `atlas` from your `PATH`. To use another one, name it:
-`ATLAS=./bin/atlas examples/clock.sh`.
+Run a script by itself, for example `examples/clock.sh`. It uses `atlas` from your
+`PATH`, or else `bin/atlas` after `make build`; `ATLAS=/some/other/atlas` names
+another one.
 
 ## Fun mode
 

@@ -5,6 +5,10 @@
 #   examples/clock.sh
 set -eu
 
+# Use atlas from your PATH, or else the one built in this repository.
+atlas=${ATLAS:-$(command -v atlas || echo "$(dirname "$0")/../bin/atlas")}
+command -v "$atlas" >/dev/null || { echo "atlas not found: run 'make build' first" >&2; exit 1; }
+
 while :; do
 	# shellcheck disable=SC2046 # the two fields are meant to become $1 and $2
 	set -- $(date '+%I%M %s') # for example: 0941 1791850000
@@ -15,4 +19,4 @@ while :; do
 		echo "$digits"
 	fi
 	sleep 0.1
-done | "${ATLAS:-atlas}" show
+done | "$atlas" show
