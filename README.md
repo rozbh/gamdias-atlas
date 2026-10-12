@@ -112,7 +112,7 @@ Ready-made scripts in [examples/](examples/):
 
 | Script | What the display shows |
 |--------|------------------------|
-| `examples/clock.sh` | The time, with the dot blinking once a second. Three digits fit the last three of the 12-hour time: 9:41 is `941`, 12:30 is `230` |
+| `examples/clock.sh` | A 12-hour clock. From 1:00 to 9:59 the time fits (`941`) and the dot blinks once a second. From 10:00 it takes turns: the hour with the dot (`12.0`), then the minutes without it (`035`). `clock.sh 24` is a 24-hour clock that always takes turns |
 | `examples/cpu-load.sh` | CPU load in percent |
 | `examples/memory.sh` | Memory in use, in percent with one decimal |
 | `examples/gpu-load.sh` | Load of an NVIDIA GPU in percent |
