@@ -101,9 +101,26 @@ while sleep 2; do nvidia-smi --query-gpu=utilization.gpu \
     --format=csv,noheader,nounits; done | atlas show # GPU load in percent
 ```
 
-`show` keeps running until Ctrl-C. Stop the background service first
-(`systemctl --user stop atlas`), or the two will take turns on the display.
-A line longer than 64 KB ends the input; the last value stays on the display.
+A new value is shown at once, at most ten times a second. `show` keeps running until
+Ctrl-C. Stop the background service first (`systemctl --user stop atlas`), or the
+two will take turns on the display. A line longer than 64 KB ends the input; the
+last value stays on the display.
+
+### Examples
+
+Ready-made scripts in [examples/](examples/):
+
+| Script | What the display shows |
+|--------|------------------------|
+| `examples/clock.sh` | The time, with the dot blinking once a second. Three digits fit the last three of the 12-hour time: 9:41 is `941`, 12:30 is `230` |
+| `examples/cpu-load.sh` | CPU load in percent |
+| `examples/memory.sh` | Memory in use, in percent with one decimal |
+| `examples/gpu-load.sh` | Load of an NVIDIA GPU in percent |
+| `examples/ping.sh [host]` | Ping time in milliseconds |
+| `examples/countdown.sh 90` | A countdown from that many seconds to `000` |
+
+They run `atlas` from your `PATH`. To use another one, name it:
+`ATLAS=./bin/atlas examples/clock.sh`.
 
 ## Fun mode
 
@@ -214,6 +231,7 @@ binaries and publishes a release ([the workflow](.github/workflows/build.yml)).
 | `internal/display/displaytest/` | The fake display the tests use |
 | `internal/sensor/` | CPU and GPU temperature readers |
 | `internal/anim/` | The animation table and its player |
+| `examples/` | Scripts that show other things through `atlas show` |
 | `udev/` | The rule that lets your user open the display |
 | `tools/` | The script that unpacked the ZEUS CAST installer |
 

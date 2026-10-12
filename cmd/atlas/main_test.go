@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -400,6 +401,55 @@ func TestShowFromInput(t *testing.T) {
 	waitFor(t, "frames after the input ended", func() bool { return len(fake.Reports()) >= n+3 })
 	if !shows(fake, digits(7, 7, 7, 0, 0))() {
 		t.Error("after the input ended the last value should stay")
+	}
+	if err := stop(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestShowUpdatesAtOnce(t *testing.T) {
+	d, fake := displaytest.New(display.CPU)
+	a, _, _ := testApp(d)
+	a.refresh = time.Minute // so nothing below can be the regular refresh
+	in, lines := io.Pipe()
+	a.in = in
+	stop := start(t, a, "show")
+
+	io.WriteString(lines, "111\n")
+	waitFor(t, "111", shows(fake, digits(1, 1, 1, 0, 0)))
+	io.WriteString(lines, "22.2\n")
+	waitFor(t, "22.2 without waiting for the refresh", shows(fake, digits(2, 2, 2, 1, 0)))
+
+	// the same value again is not news
+	n := len(fake.Reports())
+	io.WriteString(lines, "22.2\n22.2\n")
+	time.Sleep(50 * time.Millisecond)
+	if after := len(fake.Reports()); after != n {
+		t.Errorf("repeating the value sent %d more reports", after-n)
+	}
+	if err := stop(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestShowDoesNotFloodTheDisplay(t *testing.T) {
+	d, fake := displaytest.New(display.CPU)
+	a, _, _ := testApp(d)
+	a.refresh = 400 * time.Millisecond
+	in, lines := io.Pipe()
+	a.in = in
+	stop := start(t, a, "show")
+
+	begin := time.Now()
+	for i := 0; i < 1000; i++ {
+		io.WriteString(lines, fmt.Sprintf("%03d\n", i))
+	}
+	waitFor(t, "the last value", shows(fake, digits(9, 9, 9, 0, 0)))
+	took := time.Since(begin)
+	// the query, the first frame, then one frame per minGap and one per refresh
+	limit := 3 + int(took/minGap) + int(took/a.refresh)
+	if n := len(fake.Reports()); n > limit {
+		t.Errorf("1000 values in %v caused %d reports, want at most %d", took, n, limit)
 	}
 	if err := stop(); err != nil {
 		t.Error(err)

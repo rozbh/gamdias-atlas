@@ -67,13 +67,13 @@ func (a app) run(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
-		return a.hold(ctx, anim.Tick, next)
+		return a.hold(ctx, anim.Tick, next, nil)
 	case args[0] == "raw":
 		f, err := rawFrame(args[1:])
 		if err != nil {
 			return err
 		}
-		return a.hold(ctx, a.refresh, func() display.Frame { return f })
+		return a.hold(ctx, a.refresh, func() display.Frame { return f }, nil)
 	case args[0] == "scan":
 		return a.scan(ctx, args[1:])
 	case args[0] == "mode" && len(args) == 2:
@@ -96,23 +96,30 @@ func (a app) temperatures(ctx context.Context) error {
 	return feed(ctx, d, a.refresh, cpu, a.gpu)
 }
 
-func (a app) hold(ctx context.Context, every time.Duration, next func() display.Frame) error {
+func (a app) hold(ctx context.Context, every time.Duration, next func() display.Frame, wake <-chan struct{}) error {
 	d, err := a.open()
 	if err != nil {
 		return err
 	}
-	return hold(ctx, d, every, next)
+	return hold(ctx, d, every, next, wake)
 }
 
-// show displays a fixed value or, with no arguments, the latest valid line of input.
+// show displays a fixed value or, with no arguments, the latest valid line of
+// input. A line with a new value is shown at once.
 func (a app) show(ctx context.Context, args []string) error {
 	var latest atomic.Pointer[display.Frame]
+	changed := make(chan struct{}, 1)
 	set := func(text string) error {
 		f, err := display.Parse(text)
 		if err != nil {
 			return fmt.Errorf("can't show %q: %v", text, err)
 		}
-		latest.Store(&f)
+		if old := latest.Swap(&f); old != nil && *old != f {
+			select {
+			case changed <- struct{}{}:
+			default: // a change is already waiting to be shown
+			}
+		}
 		return nil
 	}
 	if len(args) > 0 {
@@ -142,7 +149,7 @@ func (a app) show(ctx context.Context, args []string) error {
 			}
 		}()
 	}
-	return a.hold(ctx, a.refresh, func() display.Frame { return *latest.Load() })
+	return a.hold(ctx, a.refresh, func() display.Frame { return *latest.Load() }, changed)
 }
 
 func (a app) mode(name string) error {
@@ -250,5 +257,5 @@ func (a app) scan(ctx context.Context, args []string) error {
 			v, tick = v+1, 0
 		}
 		return f
-	})
+	}, nil)
 }
