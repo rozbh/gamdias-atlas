@@ -16,6 +16,19 @@ func gone(err error) bool {
 	return err != nil && !errors.Is(err, display.ErrNoReply)
 }
 
+// wait blocks until the next tick. It reports false if ctx ended first.
+func wait(ctx context.Context, t *time.Ticker) bool {
+	if ctx.Err() != nil {
+		return false
+	}
+	select {
+	case <-t.C:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
 // feed shows the temperature for whichever mode the display is in, until ctx
 // ends. The GPU sensor is only started once the display is in GPU mode; until
 // it has a reading, or without one, the display shows the CPU.
@@ -51,9 +64,7 @@ func feed(ctx context.Context, d *display.Display, every time.Duration, cpu sens
 		} else if gone(err) {
 			return err
 		}
-		select {
-		case <-t.C:
-		case <-ctx.Done():
+		if !wait(ctx, t) {
 			return nil
 		}
 	}
@@ -76,9 +87,7 @@ func hold(ctx context.Context, d *display.Display, every time.Duration, next fun
 		} else if gone(err) {
 			return err
 		}
-		select {
-		case <-t.C:
-		case <-ctx.Done():
+		if !wait(ctx, t) {
 			if f.Flash != 0 { // don't leave the display blinking
 				f.Flash = 0
 				d.Show(f, display.Keep)

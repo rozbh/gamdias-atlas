@@ -144,6 +144,11 @@ func TestBadCommandLinesNeverTouchTheDisplay(t *testing.T) {
 		{"show abc", "use up to 3 characters"},
 		{"show 1 2", "use up to 3 characters"},
 		{"show", "nothing to show"},
+		{"scan 5", usage},
+		{"scan dot 1 2 3", usage},
+		{"scan a b", `"a" is not a byte`},
+		{"scan 1 256", `"256" is not a byte`},
+		{"scan 9 3", "larger than the last"},
 		{"", "no CPU temperature sensor"},
 	} {
 		err := a.run(context.Background(), strings.Fields(c.args))
@@ -156,7 +161,7 @@ func TestBadCommandLinesNeverTouchTheDisplay(t *testing.T) {
 func TestOpenErrorIsReported(t *testing.T) {
 	a, _, _ := testApp(nil)
 	a.open = func() (*display.Display, error) { return nil, display.ErrNotFound }
-	for _, args := range []string{"", "status", "mode cpu", "show 123", "fun fill", "raw 1 2 3"} {
+	for _, args := range []string{"", "status", "mode cpu", "show 123", "fun fill", "raw 1 2 3", "scan", "scan dot"} {
 		if err := a.run(context.Background(), strings.Fields(args)); !errors.Is(err, display.ErrNotFound) {
 			t.Errorf("atlas %s: error %v, want ErrNotFound", args, err)
 		}
@@ -413,6 +418,56 @@ func TestFunPlaysAnAnimation(t *testing.T) {
 	for i, want := range []display.Frame{digits(0, 0, 0, 0, 0), digits(8, 0, 0, 0, 0), digits(8, 8, 0, 0, 0)} {
 		if got[i+1].Frame != want {
 			t.Errorf("frame %d was %+v, want %+v", i, got[i+1].Frame, want)
+		}
+	}
+}
+
+func TestScan(t *testing.T) {
+	for _, c := range []struct {
+		args  string
+		known display.Frame
+		try   func(v byte) display.Frame
+		out   string
+	}{
+		{"scan 41 43", digits(0, 0, 0, 0, 0), func(v byte) display.Frame { return digits(v, 8, 8, 0, 0) }, "41\n42\n43\n"},
+		{"scan dot 2 3", digits(1, 2, 3, 0, 0), func(v byte) display.Frame { return digits(1, 2, 3, v, 0) }, "2\n3\n"},
+		{"scan 255 255", digits(0, 0, 0, 0, 0), func(v byte) display.Frame { return digits(v, 8, 8, 0, 0) }, "255\n"},
+	} {
+		d, fake := displaytest.New(display.CPU)
+		a, out, _ := testApp(d)
+		args := strings.Fields(c.args)
+		if err := a.run(context.Background(), args); err != nil { // it ends by itself
+			t.Fatalf("atlas %s: %v", c.args, err)
+		}
+		if !strings.HasSuffix(out.String(), "Ctrl-C stops.\n"+c.out) {
+			t.Errorf("atlas %s printed:\n%s\nwant it to end with %q", c.args, out, c.out)
+		}
+		var want []display.Frame
+		for _, line := range strings.Fields(c.out) {
+			v, _ := parseByte(line)
+			want = append(want, c.known, c.try(v), c.try(v))
+		}
+		want = append(want, c.known) // it leaves the known frame on the display
+		got := fake.Reports()[1:]    // after the query
+		if len(got) != len(want) {
+			t.Fatalf("atlas %s sent %d frames, want %d", c.args, len(got), len(want))
+		}
+		for i := range want {
+			if got[i].Frame != want[i] {
+				t.Errorf("atlas %s: frame %d was %+v, want %+v", c.args, i, got[i].Frame, want[i])
+			}
+		}
+	}
+}
+
+func TestScanStartsAtTheFirstUnknownValue(t *testing.T) {
+	for args, first := range map[string]string{"scan": "10\n", "scan dot": "2\n"} {
+		d, _ := displaytest.New(display.CPU)
+		a, out, _ := testApp(d)
+		stop := start(t, a, strings.Fields(args)...)
+		waitFor(t, "the first value", func() bool { return strings.Contains(out.String(), "Ctrl-C stops.\n"+first) })
+		if err := stop(); err != nil {
+			t.Errorf("atlas %s: stopping returned %v", args, err)
 		}
 	}
 }

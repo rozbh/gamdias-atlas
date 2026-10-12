@@ -1,5 +1,6 @@
-# Build output
+# Build output and downloaded release binaries
 /bin/
+/atlas-linux-*
 
 # GAMDIAS's own files. They were used to work out the protocol and are not ours to publish.
 /ZEUS CAST*.exe

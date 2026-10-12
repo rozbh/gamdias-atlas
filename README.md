@@ -147,23 +147,24 @@ can only draw what its firmware has a shape for.
 
 - **Works:** digits `0`-`9`, and the decimal point before the last digit. This is
   everything ZEUS CAST ever sends.
-- **Does nothing:** values 10-40, tested on the hardware. That includes 32, which
-  ZEUS CAST uses as a blank digit on the sibling BOREAS and CHIONE displays. So
-  there is no blank, and `show` pads with zeros.
-- **Untested:** values 41-255, and dot flags other than 0 and 1.
+- **Not known yet:** every other value. A first, quick look at 10-40 showed
+  nothing, so `show` pads short values with zeros and not with blanks.
 
-`raw` sends any byte values, so the untested ones can be tried:
+`atlas scan` finds out. It steps through the values by itself, about one a second,
+and prints each number as it tries it:
 
 ```sh
-timeout 1 atlas show 888   # put something known on the display first
-for i in $(seq 41 255); do echo $i; timeout 1 atlas raw $i $i $i; done
-atlas raw 1 2 3 2       # fourth byte is the dot flag
-atlas raw 1 2 3 0 1     # fifth byte is the flash flag
+atlas scan          # digit values 10-255: each is shown in the left digit, next to 88
+atlas scan 60 70    # only part of the range, to look again
+atlas scan dot      # values 2-255 as the dot flag, with 123 on the display
 ```
 
-If the display changes, the number last printed in the terminal is the value that
-did it. Add it to the table in [internal/display/glyphs.go](internal/display/glyphs.go)
-and `show` will accept that character. A pull request with what you find is welcome.
+Note the numbers where the display shows something new. A value that draws a
+shape can be added to the table in
+[internal/display/glyphs.go](internal/display/glyphs.go), and `show` will accept
+that character. A pull request with what you find is welcome.
+
+`atlas raw 1 2 3 [dot] [flash]` sends one frame of any byte values.
 
 ## Left out
 
@@ -223,7 +224,7 @@ binaries and publishes a release ([the workflow](.github/workflows/build.yml)).
 - It starts one other program, `nvidia-smi`, found through `PATH` and given fixed
   arguments. Run `atlas` as your own user, which the udev rule makes possible, and
   not with `sudo`.
-- It can only send the display's "set" and "query" reports. `raw` and the
+- It can only send the display's "set" and "query" reports. `raw`, `scan` and the
   animation table choose the digit, dot and flash bytes and nothing else.
 - Replies are used only if the header and checksum are right.
 - The udev rule gives access to the user logged in at the machine, not to everyone.
