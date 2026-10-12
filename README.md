@@ -1,15 +1,18 @@
 # atlas
 
-An open-source command-line tool for the GAMDIAS **ATLAS Digital Display** (USB
-`1b80:b538`), the three-digit temperature readout on the ATLAS P1 case.
+An open-source Linux command-line tool for the GAMDIAS **ATLAS Digital Display**
+(USB `1b80:b538`), the three-digit temperature readout on the ATLAS P1 case.
 
-It does the job of GAMDIAS's ZEUS CAST without ZEUS CAST: it sends the CPU or GPU
-temperature to the display. It also shows your own numbers and plays small
-animations, which ZEUS CAST does not offer for this display.
+> **Linux only, for now.** Windows and macOS are not supported. On Windows, use
+> GAMDIAS's own ZEUS CAST.
 
-- **The program** is a small Go program with no dependencies. It runs on Linux.
-- **The protocol** is written down in full [below](#protocol), so the display can
-  be driven from any system and any language.
+It does the job of ZEUS CAST on Linux: it sends the CPU or GPU temperature to the
+display. It also shows your own numbers and plays small animations, which
+ZEUS CAST does not offer for this display.
+
+It is a small Go program with no dependencies. The display's protocol is written
+down in full [below](#protocol), for anyone who wants to drive it from another
+system or language.
 
 > **Unofficial.** This project is not made or endorsed by GAMDIAS. It has been
 > used on one display, with firmware 1.2.
@@ -163,6 +166,10 @@ did it. Add it to the table in [internal/display/glyphs.go](internal/display/gly
 and `show` will accept that character. A pull request with what you find is welcome.
 
 ## Left out
+
+Windows and macOS. Two parts of the program are specific to Linux: finding and
+opening the display (`/sys/class/hidraw`, `/dev/hidraw*`) and reading the
+temperatures (`/sys/class/hwmon`). The reports themselves are the same everywhere.
 
 Fahrenheit, and flashing the display when a temperature is too high. Fahrenheit is
 byte 14 in `report()` in [internal/display/protocol.go](internal/display/protocol.go);
