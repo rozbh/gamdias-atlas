@@ -1,14 +1,15 @@
 #!/bin/sh
 # A clock for three digits.
 #
-#   examples/clock.sh      12-hour. From 1:00 to 9:59 the time fits: 9:41 is
-#                          941, and the dot blinks once a second like a colon.
-#                          From 10:00 to 12:59 it has a digit too many, so the
-#                          display takes turns, two seconds each: the hour with
-#                          the dot on (12.0), then the minutes with it off (035).
-#   examples/clock.sh 24   24-hour, always taking turns: 14.0, then 035.
+#   examples/clock.sh      12-hour
+#   examples/clock.sh 24   24-hour
 #
-# The display has no blank digit, so the place that is not used shows a 0.
+# While the hour has one digit the time fits: 9:41 is 941, and the dot blinks
+# once a second like a colon. From 10 o'clock it has a digit too many, so the
+# display takes turns, two seconds each: the hour with the dot on (12.0), then
+# the minutes with the dot off (035).
+#
+# The display has no known blank digit or dash, so the unused place shows a 0.
 set -eu
 
 # Use atlas from your PATH, or else the one built in this repository.
@@ -30,7 +31,7 @@ while :; do
 	hour=$1 minute=$3 second=$4
 	[ "$format" = 24 ] && hour=$2
 
-	if [ "$format" = 12 ] && [ "${hour#0}" -lt 10 ]; then
+	if [ "${hour#0}" -lt 10 ]; then
 		if [ $((second % 2)) -eq 0 ]; then
 			echo "${hour#0}${minute%?}.${minute#?}" # 94.1
 		else
