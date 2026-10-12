@@ -1,0 +1,11 @@
+# Build output
+/bin/
+
+# GAMDIAS's own files. They were used to work out the protocol and are not ours to publish.
+/ZEUS CAST*.exe
+/extracted/
+/decompiled/
+
+# The first, Python version of the tool, replaced by the Go program
+/atlasctl
+__pycache__/

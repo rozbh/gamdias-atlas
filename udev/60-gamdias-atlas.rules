@@ -1,0 +1,2 @@
+# GAMDIAS ATLAS Digital Display: let the logged-in user talk to it (for atlasctl)
+KERNEL=="hidraw*", ATTRS{idVendor}=="1b80", ATTRS{idProduct}=="b538", MODE="0660", TAG+="uaccess"
